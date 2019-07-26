@@ -18,6 +18,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Queue;
@@ -48,28 +49,28 @@ public final class Application {
 
         long tickNs = System.nanoTime();
 
-        Thread[] threads = new Thread[THREADS];
+        Collection<Thread> threads = new ArrayList<>();
 
         for (int i = 0; i < THREADS; i++) {
-            threads[i] = new Worker(url);
+            threads.add(new Worker(url));
         }
 
-        for (int i = 0; i < THREADS; i++) {
-            threads[i].start();
+        LOGGER.info("Starting threads");
+        for (Thread thread : threads) {
+            thread.start();
         }
 
         LOGGER.info("Waiting operations...");
-
         Thread.sleep(DURATION_MS);
 
-        for (int i = 0; i < THREADS; i++) {
-            threads[i].interrupt();
+        LOGGER.info("Interrupting threads");
+        for (Thread thread : threads) {
+            thread.interrupt();
         }
 
         LOGGER.info("Waiting all threads to close...");
-
-        for (int i = 0; i < THREADS; i++) {
-            threads[i].join();
+        for (Thread thread : threads) {
+            thread.join();
         }
 
         long elapsedNs = System.nanoTime() - tickNs;
@@ -136,7 +137,7 @@ public final class Application {
 
                     HttpEntity entity = response.getEntity();
 
-                    // load all content
+                    // load all content to /dev/null
                     try (InputStream is = entity.getContent()) {
                         IOUtils.copy(is, NullWriter.NULL_WRITER, StandardCharsets.UTF_8);
                     }
