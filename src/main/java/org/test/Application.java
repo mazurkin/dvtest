@@ -5,9 +5,11 @@ import org.apache.commons.io.output.NullWriter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ public final class Application {
 
     private static final int THREADS = 100;
 
-    private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(1);
+    private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
     private final Queue<RequestResult> queue;
 
@@ -42,7 +44,7 @@ public final class Application {
     }
 
     private void run(String url) throws Exception {
-        LOGGER.info("Application started with\nurl={}\nthreads={}", url, THREADS);
+        LOGGER.info("Application started with\nurl={}\nthreads={}\nduration={}", url, THREADS, DURATION_MS);
 
         long tickNs = System.nanoTime();
 
@@ -56,13 +58,15 @@ public final class Application {
             threads[i].start();
         }
 
+        LOGGER.info("Waiting operations...");
+
         Thread.sleep(DURATION_MS);
 
         for (int i = 0; i < THREADS; i++) {
             threads[i].interrupt();
         }
 
-        LOGGER.info("Waiting threads");
+        LOGGER.info("Waiting all threads to close...");
 
         for (int i = 0; i < THREADS; i++) {
             threads[i].join();
@@ -97,9 +101,25 @@ public final class Application {
         @Override
         public void run() {
             try {
+                PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+                connectionManager.setMaxTotal(10);
+                connectionManager.setDefaultMaxPerRoute(10);
+
+                RequestConfig requestConfig = RequestConfig.custom()
+                        .setConnectTimeout(60000)
+                        .setConnectionRequestTimeout(60000)
+                        .setSocketTimeout(60000)
+                        .setCircularRedirectsAllowed(false)
+                        .setRedirectsEnabled(false)
+                        .setRelativeRedirectsAllowed(false)
+                        .setContentCompressionEnabled(false)
+                        .build();
+
                 HttpClient client = HttpClientBuilder.create()
-                        .setMaxConnTotal(1)
+                        .setMaxConnTotal(10)
+                        .setConnectionManager(connectionManager)
                         .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())
+                        .setDefaultRequestConfig(requestConfig)
                         .disableCookieManagement()
                         .build();
 
