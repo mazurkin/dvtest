@@ -28,7 +28,7 @@ public final class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static final int THREADS = 100;
+    private static final int THREADS = 150;
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
@@ -102,8 +102,8 @@ public final class Application {
         public void run() {
             try {
                 PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-                connectionManager.setMaxTotal(10);
-                connectionManager.setDefaultMaxPerRoute(10);
+                connectionManager.setMaxTotal(1);
+                connectionManager.setDefaultMaxPerRoute(1);
 
                 RequestConfig requestConfig = RequestConfig.custom()
                         .setConnectTimeout(60000)
@@ -116,7 +116,7 @@ public final class Application {
                         .build();
 
                 HttpClient client = HttpClientBuilder.create()
-                        .setMaxConnTotal(10)
+                        .setMaxConnTotal(1)
                         .setConnectionManager(connectionManager)
                         .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())
                         .setDefaultRequestConfig(requestConfig)
