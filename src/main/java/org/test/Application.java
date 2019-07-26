@@ -1,0 +1,143 @@
+package org.test;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.NullWriter;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.io.Serializable;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeUnit;
+
+public final class Application {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+
+    private static final int THREADS = 100;
+
+    private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(1);
+
+    private final Queue<RequestResult> queue;
+
+    private Application() {
+        this.queue = new ConcurrentLinkedDeque<>();
+    }
+
+    public static void main(String[] arguments) throws Exception {
+        Application application = new Application();
+        application.run(arguments[0]);
+    }
+
+    private void run(String url) throws Exception {
+        LOGGER.info("Application started with\nurl={}\nthreads={}", url, THREADS);
+
+        long tickNs = System.nanoTime();
+
+        Thread[] threads = new Thread[THREADS];
+
+        for (int i = 0; i < THREADS; i++) {
+            threads[i] = new Worker(url);
+        }
+
+        for (int i = 0; i < THREADS; i++) {
+            threads[i].start();
+        }
+
+        Thread.sleep(DURATION_MS);
+
+        for (int i = 0; i < THREADS; i++) {
+            threads[i].interrupt();
+        }
+
+        LOGGER.info("Waiting threads");
+
+        for (int i = 0; i < THREADS; i++) {
+            threads[i].join();
+        }
+
+        long elapsedNs = System.nanoTime() - tickNs;
+
+        System.out.printf("elapsed %dns%n", elapsedNs);
+        System.out.printf("elapsed %.3fsec%n", elapsedNs / 1_000_000_000.0);
+
+        List<RequestResult> list = new ArrayList<>(queue);
+        list.sort(Comparator.comparingLong(r -> r.elapsedNs));
+
+        System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / 1_000_000_000.0));
+
+        System.out.printf("p50 %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / 1_000_000.0);
+        System.out.printf("p75 %.1fms%n", list.get(Math.round(list.size() * 0.75f)).elapsedNs / 1_000_000.0);
+        System.out.printf("p90 %.1fms%n", list.get(Math.round(list.size() * 0.90f)).elapsedNs / 1_000_000.0);
+        System.out.printf("p95 %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / 1_000_000.0);
+        System.out.printf("p99 %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / 1_000_000.0);
+        System.out.printf("max %.1fms%n", list.get(list.size() -1).elapsedNs / 1_000_000.0);
+    }
+
+    private class Worker extends Thread {
+
+        private final String url;
+
+        private Worker(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void run() {
+            try {
+                HttpClient client = HttpClientBuilder.create()
+                        .setMaxConnTotal(1)
+                        .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())
+                        .disableCookieManagement()
+                        .build();
+
+                URI uri = new URI(url);
+
+                while (!interrupted()) {
+                    long tickNs = System.nanoTime();
+
+                    HttpGet request = new HttpGet(uri);
+
+                    HttpResponse response = client.execute(request);
+
+                    int status = response.getStatusLine().getStatusCode();
+
+                    HttpEntity entity = response.getEntity();
+
+                    // load all content
+                    try (InputStream is = entity.getContent()) {
+                        IOUtils.copy(is, NullWriter.NULL_WRITER, StandardCharsets.UTF_8);
+                    }
+
+                    RequestResult r = new RequestResult();
+                    r.code = status;
+                    r.elapsedNs = System.nanoTime() - tickNs;
+
+                    queue.add(r);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Unexpected error", e);
+            }
+        }
+    }
+
+    private static final class RequestResult implements Serializable {
+
+        private int code;
+
+        private long elapsedNs;
+
+    }
+}
