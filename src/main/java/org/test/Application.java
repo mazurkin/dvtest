@@ -81,6 +81,7 @@ public final class Application {
         List<RequestResult> list = new ArrayList<>(queue);
         list.sort(Comparator.comparingLong(r -> r.elapsedNs));
 
+        System.out.printf("Total %d%n", list.size());
         System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / 1_000_000_000.0));
 
         System.out.printf("p50 %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / 1_000_000.0);
