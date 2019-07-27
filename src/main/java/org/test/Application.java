@@ -96,8 +96,8 @@ public final class Application {
         List<RequestResult> list = new ArrayList<>(queue);
         list.sort(Comparator.comparingLong(r -> r.elapsedNs));
 
-        System.out.printf("Total %d%n", list.size());
-        System.out.printf("200 %d%n", list.stream().filter(r -> r.code == 200).count());
+        System.out.printf("Total requests %d%n", list.size());
+        System.out.printf("200 requests %d%n", list.stream().filter(r -> r.code == 200).count());
 
         System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / NS_IN_SEC));
 
