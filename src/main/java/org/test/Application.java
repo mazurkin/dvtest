@@ -53,8 +53,8 @@ public final class Application {
     }
 
     private void run() throws Exception {
-        LOGGER.info("Application started with\nthreads={}\nduration={}ms\nurls={}",
-                THREADS, DURATION_MS, urls.size());
+        LOGGER.info("Application started with\nthreads={}\nduration={}ms\ntimeout={}ms\nurls={}",
+                THREADS, DURATION_MS, TIMEOUT_MS, urls.size());
 
         long tickNs = System.nanoTime();
 
