@@ -36,6 +36,8 @@ public final class Application {
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
+    private static final int TIMEOUT_MS = 50;
+
     private final Queue<RequestResult> queue;
 
     private final List<String> urls;
@@ -114,9 +116,9 @@ public final class Application {
                 connectionManager.setDefaultMaxPerRoute(1);
 
                 RequestConfig requestConfig = RequestConfig.custom()
-                        .setConnectTimeout(60000)
-                        .setConnectionRequestTimeout(60000)
-                        .setSocketTimeout(60000)
+                        .setConnectTimeout(TIMEOUT_MS)
+                        .setConnectionRequestTimeout(TIMEOUT_MS)
+                        .setSocketTimeout(TIMEOUT_MS)
                         .setCircularRedirectsAllowed(false)
                         .setRedirectsEnabled(false)
                         .setRelativeRedirectsAllowed(false)
