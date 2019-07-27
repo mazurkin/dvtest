@@ -36,7 +36,7 @@ public final class Application {
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
-    private static final int TIMEOUT_MS = 50;
+    private static final int TIMEOUT_MS = 100;
 
     private final Queue<RequestResult> queue;
 
@@ -104,47 +104,55 @@ public final class Application {
         Map<Integer, Long> codes = list.stream()
                 .collect(Collectors.groupingBy(r -> r.code, Collectors.counting()));
         System.out.printf("codes: %s%n", codes);
+
+        Map<String, Long> exceptions = list.stream()
+                .collect(Collectors.groupingBy(r -> r.exception, Collectors.counting()));
+        System.out.printf("exceptions: %s%n", exceptions);
     }
 
     private class Worker extends Thread {
 
+        private HttpClient client;
+
+        public Worker() {
+            PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+            connectionManager.setMaxTotal(1);
+            connectionManager.setDefaultMaxPerRoute(1);
+
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(TIMEOUT_MS)
+                    .setConnectionRequestTimeout(TIMEOUT_MS)
+                    .setSocketTimeout(TIMEOUT_MS)
+                    .setCircularRedirectsAllowed(false)
+                    .setRedirectsEnabled(false)
+                    .setRelativeRedirectsAllowed(false)
+                    .setMaxRedirects(0)
+                    .setContentCompressionEnabled(false)
+                    .setAuthenticationEnabled(false)
+                    .build();
+
+            DefaultHttpRequestRetryHandler retryHandler =
+                    new DefaultHttpRequestRetryHandler(0, false);
+
+            DefaultConnectionKeepAliveStrategy keepAliveStrategy =
+                    new DefaultConnectionKeepAliveStrategy();
+
+            client = HttpClientBuilder.create()
+                    .setMaxConnTotal(1)
+                    .setConnectionManager(connectionManager)
+                    .setKeepAliveStrategy(keepAliveStrategy)
+                    .setRetryHandler(retryHandler)
+                    .setDefaultRequestConfig(requestConfig)
+                    .disableCookieManagement()
+                    .disableAutomaticRetries()
+                    .disableContentCompression()
+                    .disableRedirectHandling()
+                    .build();
+        }
+
         @Override
         public void run() {
             try {
-                PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-                connectionManager.setMaxTotal(1);
-                connectionManager.setDefaultMaxPerRoute(1);
-
-                RequestConfig requestConfig = RequestConfig.custom()
-                        .setConnectTimeout(TIMEOUT_MS)
-                        .setConnectionRequestTimeout(TIMEOUT_MS)
-                        .setSocketTimeout(TIMEOUT_MS)
-                        .setCircularRedirectsAllowed(false)
-                        .setRedirectsEnabled(false)
-                        .setRelativeRedirectsAllowed(false)
-                        .setMaxRedirects(0)
-                        .setContentCompressionEnabled(false)
-                        .setAuthenticationEnabled(false)
-                        .build();
-
-                DefaultHttpRequestRetryHandler retryHandler =
-                        new DefaultHttpRequestRetryHandler(0, false);
-
-                DefaultConnectionKeepAliveStrategy keepAliveStrategy =
-                        new DefaultConnectionKeepAliveStrategy();
-
-                HttpClient client = HttpClientBuilder.create()
-                        .setMaxConnTotal(1)
-                        .setConnectionManager(connectionManager)
-                        .setKeepAliveStrategy(keepAliveStrategy)
-                        .setRetryHandler(retryHandler)
-                        .setDefaultRequestConfig(requestConfig)
-                        .disableCookieManagement()
-                        .disableAutomaticRetries()
-                        .disableContentCompression()
-                        .disableRedirectHandling()
-                        .build();
-
                 while (!interrupted()) {
                     long tickNs = System.nanoTime();
 
@@ -167,14 +175,14 @@ public final class Application {
                         RequestResult r = new RequestResult();
                         r.code = status;
                         r.elapsedNs = System.nanoTime() - tickNs;
+                        r.exception = "ok";
 
                         queue.add(r);
                     } catch (Exception e) {
-                        LOGGER.warn("Exception", e);
-
                         RequestResult r = new RequestResult();
                         r.code = -1;
                         r.elapsedNs = System.nanoTime() - tickNs;
+                        r.exception = e.getClass().getCanonicalName();
 
                         queue.add(r);
                     }
@@ -190,6 +198,8 @@ public final class Application {
         private int code;
 
         private long elapsedNs;
+
+        private String exception;
 
     }
 }
