@@ -70,6 +70,8 @@ public final class Application {
             threads.add(new Worker());
         }
 
+        System.gc();
+
         LOGGER.info("Starting threads");
         for (Thread thread : threads) {
             thread.start();
@@ -120,9 +122,9 @@ public final class Application {
 
     private class Worker extends Thread {
 
-        private HttpClient client;
+        private final HttpClient client;
 
-        public Worker() {
+        private Worker() {
             PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
             connectionManager.setMaxTotal(1);
             connectionManager.setDefaultMaxPerRoute(1);
