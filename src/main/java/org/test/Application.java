@@ -32,7 +32,7 @@ public final class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static final int THREADS = 100;
+    private static final int THREADS = 80;
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
@@ -157,11 +157,12 @@ public final class Application {
                     new DefaultConnectionKeepAliveStrategy();
 
             client = HttpClientBuilder.create()
-                    .setMaxConnTotal(1)
                     .setConnectionManager(connectionManager)
                     .setKeepAliveStrategy(keepAliveStrategy)
                     .setRetryHandler(retryHandler)
                     .setDefaultRequestConfig(requestConfig)
+                    .setMaxConnTotal(1)
+                    .setConnectionTimeToLive(3, TimeUnit.MINUTES)
                     .disableCookieManagement()
                     .disableAutomaticRetries()
                     .disableContentCompression()
