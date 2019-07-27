@@ -36,7 +36,7 @@ public final class Application {
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
-    private static final int TIMEOUT_MS = 100;
+    private static final int TIMEOUT_MS = 25;
 
     private final Queue<RequestResult> queue;
 
