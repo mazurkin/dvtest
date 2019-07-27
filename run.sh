@@ -1,6 +1,8 @@
 #!/bin/bash
 
-export MAVEN_OPTS="-Xms2048m -Xmx2048m -XX:+UseG1GC -XX:MaxGCPauseMillis=20"
+export MAVEN_OPTS="-Xms4096m -Xmx4096 -XX:+UseG1GC -XX:MaxGCPauseMillis=50"
 
-mvn clean compile exec:java \
+mvn clean compile
+
+mvn exec:java \
     -D"exec.mainClass"="org.test.Application"

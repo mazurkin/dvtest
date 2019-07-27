@@ -38,13 +38,19 @@ public final class Application {
 
     private static final int TIMEOUT_MS = 25;
 
+    private static final String SERVER = "lga-doubleverify03.pulse.prod";
+
+    private static final double NS_IN_SEC = 1_000_000_000.0;
+
+    private static final double NS_IN_MS = 1_000_000.0;
+
     private final Queue<RequestResult> queue;
 
     private final List<String> urls;
 
     private Application() throws Exception {
         this.queue = new ConcurrentLinkedDeque<>();
-        this.urls = Utility.loadUrls("lga-doubleverify03.pulse.prod");
+        this.urls = Utility.loadUrls(SERVER);
     }
 
     public static void main(String[] arguments) throws Exception {
@@ -85,21 +91,22 @@ public final class Application {
         long elapsedNs = System.nanoTime() - tickNs;
 
         System.out.printf("elapsed %dns%n", elapsedNs);
-        System.out.printf("elapsed %.3fsec%n", elapsedNs / 1_000_000_000.0);
+        System.out.printf("elapsed %.3fsec%n", elapsedNs / NS_IN_SEC);
 
         List<RequestResult> list = new ArrayList<>(queue);
         list.sort(Comparator.comparingLong(r -> r.elapsedNs));
 
         System.out.printf("Total %d%n", list.size());
         System.out.printf("200 %d%n", list.stream().filter(r -> r.code == 200).count());
-        System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / 1_000_000_000.0));
 
-        System.out.printf("p50 %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / 1_000_000.0);
-        System.out.printf("p75 %.1fms%n", list.get(Math.round(list.size() * 0.75f)).elapsedNs / 1_000_000.0);
-        System.out.printf("p90 %.1fms%n", list.get(Math.round(list.size() * 0.90f)).elapsedNs / 1_000_000.0);
-        System.out.printf("p95 %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / 1_000_000.0);
-        System.out.printf("p99 %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / 1_000_000.0);
-        System.out.printf("max %.1fms%n", list.get(list.size() -1).elapsedNs / 1_000_000.0);
+        System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / NS_IN_SEC));
+
+        System.out.printf("p50 %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p75 %.1fms%n", list.get(Math.round(list.size() * 0.75f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p90 %.1fms%n", list.get(Math.round(list.size() * 0.90f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p95 %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p99 %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / NS_IN_MS);
+        System.out.printf("max %.1fms%n", list.get(list.size() -1).elapsedNs / NS_IN_MS);
 
         Map<Integer, Long> codes = list.stream()
                 .collect(Collectors.groupingBy(r -> r.code, Collectors.counting()));
