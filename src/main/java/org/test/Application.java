@@ -96,6 +96,11 @@ public final class Application {
         System.out.printf("elapsed %.3fsec%n", elapsedNs / NS_IN_SEC);
 
         List<RequestResult> list = new ArrayList<>(queue);
+        if (list.isEmpty()) {
+            System.out.println("No any response is registered");
+            return;
+        }
+
         list.sort(Comparator.comparingLong(r -> r.elapsedNs));
 
         System.out.printf("Total requests %d%n", list.size());
