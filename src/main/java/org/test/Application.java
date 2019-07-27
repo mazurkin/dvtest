@@ -32,7 +32,7 @@ public final class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static final int THREADS = 80;
+    private static final int THREADS = 50;
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
