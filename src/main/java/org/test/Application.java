@@ -32,7 +32,7 @@ public final class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static final int THREADS = 150;
+    private static final int THREADS = 200;
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
@@ -154,11 +154,10 @@ public final class Application {
         public void run() {
             try {
                 while (!interrupted()) {
-                    long tickNs = System.nanoTime();
-
                     String url = urls.get(ThreadLocalRandom.current().nextInt(urls.size()));
-
                     HttpGet request = new HttpGet(url);
+
+                    long tickNs = System.nanoTime();
 
                     try {
                         HttpResponse response = client.execute(request);
