@@ -16,15 +16,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public final class Application {
 
@@ -36,24 +38,28 @@ public final class Application {
 
     private final Queue<RequestResult> queue;
 
-    private Application() {
+    private final List<String> urls;
+
+    private Application() throws Exception {
         this.queue = new ConcurrentLinkedDeque<>();
+        this.urls = Utility.loadUrls("lga-doubleverify03.pulse.prod");
     }
 
     public static void main(String[] arguments) throws Exception {
         Application application = new Application();
-        application.run(arguments[0]);
+        application.run();
     }
 
-    private void run(String url) throws Exception {
-        LOGGER.info("Application started with\nurl={}\nthreads={}\nduration={}", url, THREADS, DURATION_MS);
+    private void run() throws Exception {
+        LOGGER.info("Application started with\nthreads={}\nduration={}ms\nurls={}",
+                THREADS, DURATION_MS, urls.size());
 
         long tickNs = System.nanoTime();
 
         Collection<Thread> threads = new ArrayList<>();
 
         for (int i = 0; i < THREADS; i++) {
-            threads.add(new Worker(url));
+            threads.add(new Worker());
         }
 
         LOGGER.info("Starting threads");
@@ -92,15 +98,13 @@ public final class Application {
         System.out.printf("p95 %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / 1_000_000.0);
         System.out.printf("p99 %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / 1_000_000.0);
         System.out.printf("max %.1fms%n", list.get(list.size() -1).elapsedNs / 1_000_000.0);
+
+        Map<Integer, Long> codes = list.stream()
+                .collect(Collectors.groupingBy(r -> r.code, Collectors.counting()));
+        System.out.printf("codes: %s%n", codes);
     }
 
     private class Worker extends Thread {
-
-        private final String url;
-
-        private Worker(String url) {
-            this.url = url;
-        }
 
         @Override
         public void run() {
@@ -116,41 +120,62 @@ public final class Application {
                         .setCircularRedirectsAllowed(false)
                         .setRedirectsEnabled(false)
                         .setRelativeRedirectsAllowed(false)
+                        .setMaxRedirects(0)
                         .setContentCompressionEnabled(false)
+                        .setAuthenticationEnabled(false)
                         .build();
+
+                DefaultHttpRequestRetryHandler retryHandler =
+                        new DefaultHttpRequestRetryHandler(0, false);
+
+                DefaultConnectionKeepAliveStrategy keepAliveStrategy =
+                        new DefaultConnectionKeepAliveStrategy();
 
                 HttpClient client = HttpClientBuilder.create()
                         .setMaxConnTotal(1)
                         .setConnectionManager(connectionManager)
-                        .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())
-                        .setRetryHandler(new DefaultHttpRequestRetryHandler())
+                        .setKeepAliveStrategy(keepAliveStrategy)
+                        .setRetryHandler(retryHandler)
                         .setDefaultRequestConfig(requestConfig)
                         .disableCookieManagement()
+                        .disableAutomaticRetries()
+                        .disableContentCompression()
+                        .disableRedirectHandling()
                         .build();
-
-                URI uri = new URI(url);
 
                 while (!interrupted()) {
                     long tickNs = System.nanoTime();
 
-                    HttpGet request = new HttpGet(uri);
+                    String url = urls.get(ThreadLocalRandom.current().nextInt(urls.size()));
 
-                    HttpResponse response = client.execute(request);
+                    HttpGet request = new HttpGet(url);
 
-                    int status = response.getStatusLine().getStatusCode();
+                    try {
+                        HttpResponse response = client.execute(request);
 
-                    HttpEntity entity = response.getEntity();
+                        int status = response.getStatusLine().getStatusCode();
 
-                    // load all content to /dev/null
-                    try (InputStream is = entity.getContent()) {
-                        IOUtils.copy(is, NullWriter.NULL_WRITER, StandardCharsets.UTF_8);
+                        HttpEntity entity = response.getEntity();
+
+                        // load all content to /dev/null
+                        try (InputStream is = entity.getContent()) {
+                            IOUtils.copy(is, NullWriter.NULL_WRITER, StandardCharsets.UTF_8);
+                        }
+
+                        RequestResult r = new RequestResult();
+                        r.code = status;
+                        r.elapsedNs = System.nanoTime() - tickNs;
+
+                        queue.add(r);
+                    } catch (Exception e) {
+                        LOGGER.warn("Exception", e);
+
+                        RequestResult r = new RequestResult();
+                        r.code = -1;
+                        r.elapsedNs = System.nanoTime() - tickNs;
+
+                        queue.add(r);
                     }
-
-                    RequestResult r = new RequestResult();
-                    r.code = status;
-                    r.elapsedNs = System.nanoTime() - tickNs;
-
-                    queue.add(r);
                 }
             } catch (Exception e) {
                 LOGGER.error("Unexpected error", e);
