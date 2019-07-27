@@ -32,11 +32,11 @@ public final class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static final int THREADS = 200;
+    private static final int THREADS = 150;
 
     private static final long DURATION_MS = TimeUnit.SECONDS.toMillis(60);
 
-    private static final int TIMEOUT_MS = 25;
+    private static final int TIMEOUT_MS = 20;
 
     private static final String SERVER = "lga-doubleverify03.pulse.prod";
 
