@@ -6,9 +6,11 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,12 +26,13 @@ public class Utility {
             .withFirstRecordAsHeader()
             .withQuote('"');
 
-    private static final String INPUT_FILE = Utility.class.getResource("/hits.csv").getFile();
+    private static final URL INPUT_RESOURCE = Utility.class.getResource("/hits.csv");
 
     public static List<String> loadUrls(String server) throws Exception {
         List<String> result = new ArrayList<>();
 
-        try (Reader reader = Files.newBufferedReader(Paths.get(INPUT_FILE));
+        try (InputStream is = INPUT_RESOURCE.openStream();
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
              CSVParser csvParser = new CSVParser(reader, CSV_FORMAT))
         {
             for (CSVRecord csvRecord : csvParser) {
