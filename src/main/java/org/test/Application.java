@@ -51,6 +51,7 @@ public final class Application {
     private Application() throws Exception {
         this.queue = new ConcurrentLinkedDeque<>();
         this.urls = Utility.loadUrls(SERVER);
+        // this.urls = Collections.singletonList("http://lga-static.contextweb.com/check.txt");
     }
 
     public static void main(String[] arguments) throws Exception {
