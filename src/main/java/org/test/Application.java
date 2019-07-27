@@ -104,21 +104,22 @@ public final class Application {
         list.sort(Comparator.comparingLong(r -> r.elapsedNs));
 
         System.out.printf("Total requests %d%n", list.size());
-        System.out.printf("200 requests %d%n", list.stream().filter(r -> r.code == 200).count());
+        System.out.printf("#200  requests %d%n", list.stream().filter(r -> r.code == 200).count());
 
         System.out.printf("QPS %.1f/sec%n", list.size() / (elapsedNs / NS_IN_SEC));
 
-        System.out.printf("min %.1fms%n", list.get(0).elapsedNs / NS_IN_MS);
-        System.out.printf("avg %.1fms%n", (elapsedNs / NS_IN_MS) / list.size());
-        System.out.printf("p50 %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p75 %.1fms%n", list.get(Math.round(list.size() * 0.75f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p90 %.1fms%n", list.get(Math.round(list.size() * 0.90f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p95 %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p96 %.1fms%n", list.get(Math.round(list.size() * 0.96f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p97 %.1fms%n", list.get(Math.round(list.size() * 0.97f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p98 %.1fms%n", list.get(Math.round(list.size() * 0.98f)).elapsedNs / NS_IN_MS);
-        System.out.printf("p99 %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / NS_IN_MS);
-        System.out.printf("max %.1fms%n", list.get(list.size() - 1).elapsedNs / NS_IN_MS);
+        System.out.printf("min   %.1fms%n", list.get(0).elapsedNs / NS_IN_MS);
+        System.out.printf("avg   %.1fms%n", (elapsedNs / NS_IN_MS) / list.size());
+        System.out.printf("p50   %.1fms%n", list.get(Math.round(list.size() * 0.50f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p75   %.1fms%n", list.get(Math.round(list.size() * 0.75f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p90   %.1fms%n", list.get(Math.round(list.size() * 0.90f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p95   %.1fms%n", list.get(Math.round(list.size() * 0.95f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p96   %.1fms%n", list.get(Math.round(list.size() * 0.96f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p97   %.1fms%n", list.get(Math.round(list.size() * 0.97f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p98   %.1fms%n", list.get(Math.round(list.size() * 0.98f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p99   %.1fms%n", list.get(Math.round(list.size() * 0.99f)).elapsedNs / NS_IN_MS);
+        System.out.printf("p99.9 %.1fms%n", list.get(Math.round(list.size() * 0.999f)).elapsedNs / NS_IN_MS);
+        System.out.printf("max   %.1fms%n", list.get(list.size() - 1).elapsedNs / NS_IN_MS);
 
         Map<Integer, Long> codes = list.stream()
                 .collect(Collectors.groupingBy(r -> r.code, Collectors.counting()));
