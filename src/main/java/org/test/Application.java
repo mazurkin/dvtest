@@ -138,10 +138,11 @@ public final class Application {
             PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
             connectionManager.setMaxTotal(1);
             connectionManager.setDefaultMaxPerRoute(1);
+            connectionManager.setValidateAfterInactivity(30000);
 
             RequestConfig requestConfig = RequestConfig.custom()
-                    .setConnectTimeout(TIMEOUT_MS)
                     .setConnectionRequestTimeout(TIMEOUT_MS)
+                    .setConnectTimeout(TIMEOUT_MS)
                     .setSocketTimeout(TIMEOUT_MS)
                     .setCircularRedirectsAllowed(false)
                     .setRedirectsEnabled(false)
@@ -162,7 +163,6 @@ public final class Application {
                     .setKeepAliveStrategy(keepAliveStrategy)
                     .setRetryHandler(retryHandler)
                     .setDefaultRequestConfig(requestConfig)
-                    .setMaxConnTotal(1)
                     .setConnectionTimeToLive(3, TimeUnit.MINUTES)
                     .disableCookieManagement()
                     .disableAutomaticRetries()
