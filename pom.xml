@@ -29,7 +29,7 @@
         <commons-io-version>2.6</commons-io-version>
         <commons-lang3-version>3.9</commons-lang3-version>
         <commons-csv-version>1.7</commons-csv-version>
-        <guava-version>28.0-jre</guava-version>
+        <guava-version>29.0-jre</guava-version>
     </properties>
 
     <dependencies>
